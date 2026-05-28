@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinical AI Feature Classification Tool — Elation Health</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #ffffff;
+    --bg2:       #f7f6f3;
+    --bg3:       #efede9;
+    --text:      #1a1a18;
+    --text2:     #5a5955;
+    --text3:     #9a9891;
+    --border:    rgba(0,0,0,0.10);
+    --border2:   rgba(0,0,0,0.18);
+    --radius:    10px;
+    --radius-lg: 14px;
+    --font:      -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono:      "SF Mono", "Fira Code", monospace;
+
+    --c-success-bg:   #eaf3de;
+    --c-success-text: #3b6d11;
+    --c-success-bdr:  rgba(59,109,17,0.25);
+    --c-info-bg:      #e6f1fb;
+    --c-info-text:    #185fa5;
+    --c-info-bdr:     rgba(24,95,165,0.25);
+    --c-warn-bg:      #faeeda;
+    --c-warn-text:    #854f0b;
+    --c-warn-bdr:     rgba(133,79,11,0.25);
+    --c-danger-bg:    #fcebeb;
+    --c-danger-text:  #a32d2d;
+    --c-danger-bdr:   rgba(163,45,45,0.25);
+    --c-gray-bg:      #f1efe8;
+    --c-gray-text:    #5f5e5a;
+    --c-gray-bdr:     rgba(95,94,90,0.20);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #1c1b18;
+      --bg2:       #252420;
+      --bg3:       #2e2c28;
+      --text:      #e8e6df;
+      --text2:     #a8a69f;
+      --text3:     #6a6860;
+      --border:    rgba(255,255,255,0.10);
+      --border2:   rgba(255,255,255,0.18);
+
+      --c-success-bg:   #1e3010;
+      --c-success-text: #97c459;
+      --c-success-bdr:  rgba(151,196,89,0.25);
+      --c-info-bg:      #0d2a45;
+      --c-info-text:    #85b7eb;
+      --c-info-bdr:     rgba(133,183,235,0.25);
+      --c-warn-bg:      #3a2505;
+      --c-warn-text:    #fac775;
+      --c-warn-bdr:     rgba(250,199,117,0.25);
+      --c-danger-bg:    #3a1010;
+      --c-danger-text:  #f09595;
+      --c-danger-bdr:   rgba(240,149,149,0.25);
+      --c-gray-bg:      #2a2925;
+      --c-gray-text:    #b4b2a9;
+      --c-gray-bdr:     rgba(180,178,169,0.20);
+    }
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1rem 4rem;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────────── */
+  .header {
+    width: 100%;
+    max-width: 680px;
+    padding: 2.5rem 0 1.5rem;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 2rem;
+  }
+  .header-eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: .5rem;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: .4rem;
+  }
+  .header p {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* ── Main card ───────────────────────────────────────────────────────────── */
+  .card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--bg);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  /* ── Progress bar ────────────────────────────────────────────────────────── */
+  .progress-bar {
+    height: 3px;
+    background: var(--bg3);
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--c-info-text);
+    transition: width .3s ease;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* ── Card body ───────────────────────────────────────────────────────────── */
+  .card-body {
+    padding: 1.75rem 1.75rem 1.5rem;
+  }
+
+  /* ── Trail ───────────────────────────────────────────────────────────────── */
+  .trail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+    min-height: 26px;
+  }
+  .crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .crumb-check {
+    width: 12px;
+    height: 12px;
+    color: var(--c-success-text);
+    flex-shrink: 0;
+  }
+
+  /* ── Step label ──────────────────────────────────────────────────────────── */
+  .step-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: .75rem;
+  }
+
+  /* ── Question ────────────────────────────────────────────────────────────── */
+  .question {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.45;
+    margin-bottom: .5rem;
+  }
+  .question-note {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+
+  /* ── Options ─────────────────────────────────────────────────────────────── */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background .12s, border-color .12s, transform .08s;
+    font-family: var(--font);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .opt:hover {
+    background: var(--bg2);
+    border-color: var(--border2);
+  }
+  .opt:active { transform: scale(.99); }
+
+  .opt-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0.5px solid;
+    font-size: 17px;
+  }
+  .opt-content { flex: 1; }
+  .opt-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .opt-sub {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+  .opt-note {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 5px;
+    line-height: 1.4;
+    font-style: italic;
+  }
+  .opt-signals {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-top: 5px;
+    line-height: 1.6;
+    background: var(--bg2);
+    border-radius: 4px;
+    padding: 3px 7px;
+    display: inline-block;
+  }
+  .opt-caret {
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: auto;
+    color: var(--text3);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* icon tint helpers */
+  .ic-success { background: var(--c-success-bg); border-color: var(--c-success-bdr); }
+  .ic-info    { background: var(--c-info-bg);    border-color: var(--c-info-bdr); }
+  .ic-warn    { background: var(--c-warn-bg);    border-color: var(--c-warn-bdr); }
+  .ic-danger  { background: var(--c-danger-bg);  border-color: var(--c-danger-bdr); }
+  .ic-gray    { background: var(--c-gray-bg);    border-color: var(--c-gray-bdr); }
+
+  /* ── Result ──────────────────────────────────────────────────────────────── */
+  .result-label {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: .75rem;
+  }
+  .posture-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    border: 0.5px solid;
+    margin-bottom: 1.25rem;
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .reqs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+  .req  { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--text); line-height: 1.55; }
+  .req-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+  /* ── Alert ───────────────────────────────────────────────────────────────── */
+  .alert {
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 1.5;
+    border: 0.5px solid;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert.warn {
+    background: var(--c-warn-bg);
+    border-color: var(--c-warn-bdr);
+    color: var(--c-warn-text);
+  }
+  .alert.ok {
+    background: var(--c-success-bg);
+    border-color: var(--c-success-bdr);
+    color: var(--c-success-text);
+  }
+
+  /* ── Actions ─────────────────────────────────────────────────────────────── */
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    background: none;
+    border: 0.5px solid var(--border2);
+    border-radius: 7px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    transition: background .12s;
+    font-family: var(--font);
+    text-decoration: none;
+  }
+  .btn:hover { background: var(--bg2); }
+  .btn-ghost {
+    background: none;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: var(--font);
+    padding: 0;
+  }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* ── Footer ──────────────────────────────────────────────────────────────── */
+  .footer {
+    width: 100%;
+    max-width: 680px;
+    margin-top: 1.5rem;
+    font-size: 12px;
+    color: var(--text3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .footer a { color: var(--text3); text-decoration: underline; text-underline-offset: 2px; }
+  .footer a:hover { color: var(--text2); }
+
+  /* ── Transitions ─────────────────────────────────────────────────────────── */
+  .card-body { animation: fadein .18s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ── Responsive ──────────────────────────────────────────────────────────── */
+  @media (max-width: 480px) {
+    .card-body { padding: 1.25rem 1.25rem 1.25rem; }
+    .question  { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <p class="header-eyebrow">Elation Health · Clinical AI Governance</p>
+  <h1>Clinical AI Feature Classification</h1>
+  <p>Answer three questions to determine your feature's output type and release posture.</p>
+</div>
+
+<div class="card">
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  <div class="card-body" id="app"></div>
+</div>
+
+<div class="footer">
+  <span>CDS Governance Policy v1.0 · Elation Health · Internal use only</span>
+  <span>When in doubt, call your Clinical Co-designer</span>
+</div>
+
+<script>
+const S = { step: 'q1', trail: [], out: null, mod: null };
+
+const PM = {
+  calculator:     { no: 'general',  yes: 'guarded' },
+  surfacing:      { no: 'general',  yes: 'guarded'  },
+  conclusion:     { no: 'guarded',  yes: 'limited'  },
+  recommendation: { no: 'limited',  yes: 'blocked'  }
+};
+
+const PS = {
+  general: {
+    lbl: 'General', icon: '✓',
+    bg: 'var(--c-success-bg)', tc: 'var(--c-success-text)', bc: 'var(--c-success-bdr)',
+    reqs: [
+      { icon: '📄', text: 'Classify output type and modifier assessment in PRD.' },
+      { icon: '👤', text: 'Clinical Co-designer confirms when clinician-facing or ambiguous.' }
+    ]
+  },
+  guarded: {
+    lbl: 'Guarded', icon: '⚠',
+    bg: 'var(--c-warn-bg)', tc: 'var(--c-warn-text)', bc: 'var(--c-warn-bdr)',
+    reqs: [
+      { icon: '🔗', text: 'Source transparency and scope disclosure required in product design.' },
+      { icon: '✅', text: 'Eval coverage for relevant failure modes before shipping.' },
+      { icon: '👤', text: 'Clinical Co-designer confirms classification before shipping.' }
+    ]
+  },
+  limited: {
+    lbl: 'Limited', icon: '🔒',
+    bg: 'var(--c-danger-bg)', tc: 'var(--c-danger-text)', bc: 'var(--c-danger-bdr)',
+    reqs: [
+      { icon: '👥', text: 'Named users only — not GA.' },
+      { icon: '📋', text: 'Clinical Safety Review Process required.' },
+      { icon: '✍️', text: 'Clinical Co-designer and PM sign-off before any user exposure.' },
+      { icon: '📈', text: 'Monitoring plan documented before GA.' }
+    ]
+  },
+  blocked: {
+    lbl: 'Blocked', icon: '⛔',
+    bg: 'var(--c-danger-bg)', tc: 'var(--c-danger-text)', bc: 'var(--c-danger-bdr)',
+    reqs: [
+      { icon: '📞', text: 'Stop. Call your Clinical Co-designer.' },
+      { icon: '✏️', text: 'Redesign or reclassify through governance review.' },
+      { icon: '✗',  text: 'No eval set authorizes shipping in this posture.' }
+    ]
+  }
+};
+
+const OPTS = [
+  { id: 'calculator',     lbl: 'Calculator',     ic: 'ic-success', ico: '🧮',
+    sub: 'Named, deterministic external rule or formula. All inputs from clinician or structured data, not AI-selected.',
+    note: 'If AI selected any input to the calculation, classify as Surfacing.',
+    sg: null },
+  { id: 'surfacing',      lbl: 'Surfacing',       ic: 'ic-info',    ico: '🔍',
+    sub: 'Shows chart facts without stating what they mean. AI may select and group data; source links required.',
+    note: null,
+    sg: 'implied conclusions via grouping and juxtaposition still count — check carefully' },
+  { id: 'conclusion',     lbl: 'Conclusion',      ic: 'ic-warn',    ico: '🧠',
+    sub: 'Names what something means — trajectory, pattern, status, or diagnosis.',
+    note: null,
+    sg: 'appears to be · worsening · likely · consistent with · no red flags · uncontrolled' },
+  { id: 'recommendation', lbl: 'Recommendation',  ic: 'ic-danger',  ico: '✅',
+    sub: 'Proposes what to do. Soft phrasing counts.',
+    note: null,
+    sg: 'consider · may benefit from · should · needs · next best step' }
+];
+
+function svgCheck() {
+  return `<svg class="crumb-check" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`;
+}
+
+function trail() {
+  if (!S.trail.length) return '';
+  return `<div class="trail">${S.trail.map(c =>
+    `<span class="crumb">${svgCheck()}<span>${c}</span></span>`
+  ).join('')}</div>`;
+}
+
+function progress(n) {
+  const pct = n <= 3 ? Math.round((n - 1) / 3 * 100) : 100;
+  document.getElementById('progress').style.width = pct + '%';
+  return n <= 3
+    ? `<div class="step-label">Step ${n} of 3</div>`
+    : `<div class="step-label">Complete</div>`;
+}
+
+/* ── Screens ──────────────────────────────────────────────────────────────── */
+
+function q1() {
+  return `${trail()}${progress(1)}
+  <p class="question">Does this feature use AI to act on, analyze, select, or present patient data, clinical history, diagnoses, symptoms, medications, or results?</p>
+  <p class="question-note">When unsure, answer yes — classifying costs nothing; missing a clinical AI feature might.</p>
+  <div class="options">
+    <button class="opt" onclick="go('Not clinical AI', null, null, 'done')">
+      <span class="opt-icon ic-gray">—</span>
+      <span class="opt-content">
+        <div class="opt-label">No</div>
+        <div class="opt-sub">Standard release process applies</div>
+      </span>
+      <span class="opt-caret">›</span>
+    </button>
+    <button class="opt" onclick="go('Clinical AI', null, null, 'q2')">
+      <span class="opt-icon ic-info">✓</span>
+      <span class="opt-content">
+        <div class="opt-label">Yes</div>
+        <div class="opt-sub">Continue to output classification</div>
+      </span>
+      <span class="opt-caret">›</span>
+    </button>
+  </div>`;
+}
+
+function q2() {
+  return `${trail()}${progress(2)}
+  <p class="question">What does the AI output?</p>
+  <p class="question-note">Classify by the highest-risk step in the feature.</p>
+  <div class="options">
+    ${OPTS.map(o => `
+    <button class="opt" onclick="go('Output: ${o.lbl}', '${o.id}', null, 'q3')">
+      <span class="opt-icon ${o.ic}">${o.ico}</span>
+      <span class="opt-content">
+        <div class="opt-label">${o.lbl}</div>
+        <div class="opt-sub">${o.sub}</div>
+        ${o.note ? `<div class="opt-note">↳ ${o.note}</div>` : ''}
+        ${o.sg   ? `<span class="opt-signals">${o.sg}</span>` : ''}
+      </span>
+      <span class="opt-caret">›</span>
+    </button>`).join('')}
+  </div>`;
+}
+
+function q3() {
+  return `${trail()}${progress(3)}
+  <p class="question">Has the AI already performed the cognitive work that the clinician's action is meant to represent?</p>
+  <p class="question-note">If the clinician signs, orders, prescribes, or sends — is that a genuine independent decision, or acceptance of a judgment the AI already made?</p>
+  <div class="options">
+    <button class="opt" onclick="go('Modifier: no', null, 'no', 'result')">
+      <span class="opt-icon ic-success">👤</span>
+      <span class="opt-content">
+        <div class="opt-label">No</div>
+        <div class="opt-sub">The AI informed the decision. The clinician made it independently.</div>
+      </span>
+      <span class="opt-caret">›</span>
+    </button>
+    <button class="opt" onclick="go('Modifier: yes', null, 'yes', 'result')">
+      <span class="opt-icon ic-danger">🤖</span>
+      <span class="opt-content">
+        <div class="opt-label">Yes</div>
+        <div class="opt-sub">The AI exercised the clinical judgment the action represents.</div>
+      </span>
+      <span class="opt-caret">›</span>
+    </button>
+    <button class="opt" onclick="go('Not sure', null, null, 'unsure')">
+      <span class="opt-icon ic-warn">?</span>
+      <span class="opt-content">
+        <div class="opt-label">Not sure</div>
+        <div class="opt-sub">The line between informing and pre-empting is unclear</div>
+      </span>
+      <span class="opt-caret">📞</span>
+    </button>
+  </div>`;
+}
+
+function result() {
+  const pk = (PM[S.out] || {})[S.mod] || 'blocked';
+  const p  = PS[pk];
+  const needsCall = pk === 'limited' || pk === 'blocked';
+  progress(4);
+  return `${trail()}
+  <p class="result-label">Classification complete</p>
+  <div class="posture-badge" style="background:${p.bg};color:${p.tc};border-color:${p.bc}">
+    <span>${p.icon}</span>${p.lbl}
+  </div>
+  <div class="reqs">
+    ${p.reqs.map(r =>
+      `<div class="req"><span class="req-icon" style="color:${p.tc}">${r.icon}</span><span>${r.text}</span></div>`
+    ).join('')}
+  </div>
+  ${needsCall ? `
+  <div class="alert warn">
+    <span class="alert-icon">📞</span>
+    <span><strong>Call your Clinical Co-designer</strong> — their sign-off is required before development proceeds.</span>
+  </div>` : ''}
+  <hr class="divider">
+  <div class="actions">
+    <button class="btn-ghost" onclick="restart()">↺ Start over</button>
+    <a class="btn" href="https://www.notion.so/86967916f60e4b25a7d64cff077b1572" target="_blank" rel="noopener">
+      Open full policy ↗
+    </a>
+  </div>`;
+}
+
+function done() {
+  progress(4);
+  return `${trail()}
+  <div class="alert ok">
+    <span class="alert-icon">✓</span>
+    <span><strong>Standard process applies.</strong> This feature does not meet the clinical AI threshold. No additional governance required.</span>
+  </div>
+  <hr class="divider">
+  <button class="btn-ghost" onclick="restart()">↺ Classify another feature</button>`;
+}
+
+function unsure() {
+  progress(4);
+  return `${trail()}
+  <div class="alert warn" style="flex-direction:column;align-items:flex-start;gap:8px">
+    <div style="font-weight:500;display:flex;align-items:center;gap:6px;color:var(--c-warn-text)">
+      <span>📞</span> Call your Clinical Co-designer
+    </div>
+    <p style="font-size:13px;color:var(--text);line-height:1.6">
+      When the line between "AI informed a decision" and "AI made the decision" is unclear, that ambiguity is itself the signal to stop. The Clinical Co-designer holds stop authority at this gate.
+    </p>
+  </div>
+  <hr class="divider">
+  <div class="actions">
+    <button class="btn-ghost" onclick="restart()">↺ Start over</button>
+    <a class="btn" href="https://www.notion.so/86967916f60e4b25a7d64cff077b1572" target="_blank" rel="noopener">
+      Open full policy ↗
+    </a>
+  </div>`;
+}
+
+/* ── State management ─────────────────────────────────────────────────────── */
+
+function go(label, out, mod, next) {
+  S.trail.push(label);
+  if (out) S.out = out;
+  if (mod) S.mod = mod;
+  S.step = next;
+  render();
+}
+
+function restart() {
+  Object.assign(S, { step: 'q1', trail: [], out: null, mod: null });
+  document.getElementById('progress').style.width = '0%';
+  render();
+}
+
+function render() {
+  const screens = { q1, q2, q3, result, done, unsure };
+  const fn = screens[S.step] || q1;
+  document.getElementById('app').innerHTML = fn();
+}
+
+render();
+</script>
+
+</body>
+</html>
