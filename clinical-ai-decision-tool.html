@@ -396,13 +396,13 @@
 </div>
 
 <script>
-const S = { step: 'q1', trail: [], out: null, mod: null };
+const S = { step: 'q1', trail: [], out: null, mod: null, history: [], modPending: false };
 
 const PM = {
-  calculator:     { no: 'general',  yes: 'guarded' },
+  calculator:     { no: 'general',  yes: 'guarded'  },
   surfacing:      { no: 'general',  yes: 'guarded'  },
-  conclusion:     { no: 'guarded',  yes: 'limited'  },
-  recommendation: { no: 'limited',  yes: 'blocked'  }
+  conclusion:     { no: 'limited',  yes: 'blocked'  },
+  recommendation: { no: 'blocked',  yes: 'blocked'  }
 };
 
 const PS = {
@@ -450,7 +450,7 @@ const OPTS = [
     note: 'If AI selected any input to the calculation, classify as Surfacing.',
     sg: null },
   { id: 'surfacing',      lbl: 'Surfacing',       ic: 'ic-info',    ico: '🔍',
-    sub: 'Shows chart facts without stating what they mean. AI may select and group data; source links required.',
+    sub: 'Displays structured data or verbatim quotes from unstructured data in clinically legible patterns — without offering judgment or recommendation. Source citations are clear. The clinician owns the reasoning loop.',
     note: null,
     sg: 'implied conclusions via grouping and juxtaposition still count — check carefully' },
   { id: 'conclusion',     lbl: 'Conclusion',      ic: 'ic-warn',    ico: '🧠',
@@ -477,9 +477,11 @@ function trail() {
 function progress(n) {
   const pct = n <= 3 ? Math.round((n - 1) / 3 * 100) : 100;
   document.getElementById('progress').style.width = pct + '%';
-  return n <= 3
-    ? `<div class="step-label">Step ${n} of 3</div>`
-    : `<div class="step-label">Complete</div>`;
+  const canBack = S.history.length > 0;
+  const dots = [1,2,3].map(i => `<div class="dot ${i<n?'done':i===n?'cur':'idle'}"></div>`).join('');
+  const label = n <= 3 ? `Step ${n} of 3` : 'Complete';
+  const backBtn = canBack ? `<button class="btn-ghost" onclick="back()" style="font-size:12px;margin-left:auto">‹ Back</button>` : '';
+  return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:1.5rem">${dots}<span class="slbl">${label}</span>${backBtn}</div>`;
 }
 
 /* ── Screens ──────────────────────────────────────────────────────────────── */
@@ -527,36 +529,82 @@ function q2() {
   </div>`;
 }
 
+const CHECKLIST = [
+  'Does the AI draft or pre-populate content the clinician will sign, send, or submit?',
+  'Does the AI select a specific clinical value, code, or action rather than presenting options?',
+  'Could a clinician act on this output without leaving this screen?',
+  'Would a reasonable clinician likely accept the output without independently verifying it?'
+];
+
 function q3() {
-  return `${trail()}${progress(3)}
-  <p class="question">Has the AI already performed the cognitive work that the clinician's action is meant to represent?</p>
-  <p class="question-note">If the clinician signs, orders, prescribes, or sends — is that a genuine independent decision, or acceptance of a judgment the AI already made?</p>
-  <div class="options">
-    <button class="opt" onclick="go('Modifier: no', null, 'no', 'result')">
-      <span class="opt-icon ic-success">👤</span>
-      <span class="opt-content">
-        <div class="opt-label">No</div>
-        <div class="opt-sub">The AI informed the decision. The clinician made it independently.</div>
-      </span>
-      <span class="opt-caret">›</span>
-    </button>
-    <button class="opt" onclick="go('Modifier: yes', null, 'yes', 'result')">
-      <span class="opt-icon ic-danger">🤖</span>
-      <span class="opt-content">
-        <div class="opt-label">Yes</div>
-        <div class="opt-sub">The AI exercised the clinical judgment the action represents.</div>
-      </span>
-      <span class="opt-caret">›</span>
-    </button>
-    <button class="opt" onclick="go('Not sure', null, null, 'unsure')">
-      <span class="opt-icon ic-warn">?</span>
-      <span class="opt-content">
-        <div class="opt-label">Not sure</div>
-        <div class="opt-sub">The line between informing and pre-empting is unclear</div>
-      </span>
-      <span class="opt-caret">📞</span>
-    </button>
-  </div>`;
+  const isHighRisk = S.out === 'conclusion' || S.out === 'recommendation';
+
+  if (isHighRisk) {
+    const baseKey      = S.out === 'conclusion' ? 'limited' : 'blocked';
+    const elevatedKey  = S.out === 'conclusion' ? 'blocked' : 'blocked';
+    const baseName     = PS[baseKey].lbl;
+    const isBlocked    = baseKey === 'blocked';
+
+    const postureNote = isBlocked
+      ? `Elation's current posture is <strong>not to build native Recommendations</strong>. This feature is Blocked until posture changes through governance review.`
+      : `Elation's current posture is <strong>not to build native Conclusions yet</strong>. Proceeding requires the Clinical Safety Review Process and co-designer sign-off. The baseline posture is <strong>${baseName}</strong>.`;
+
+    return `${trail()}${progress(3)}
+    <p class="question">This step requires your Clinical Co-designer.</p>
+    <p class="question-note">${postureNote}</p>
+    <div class="alert warn" style="flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:1.25rem">
+      <div style="font-weight:500;color:var(--c-warn-text)">⚠ Three error types your co-designer will evaluate:</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.7">
+        <div style="margin-bottom:6px"><strong>Hallucination</strong> — fabricated output that conflicts with what the clinician already knows. Catchable, but only if the clinician stops to interrogate.</div>
+        <div style="margin-bottom:6px"><strong>Confabulation</strong> — constructed from real data points into a plausible but wrong inference. Does not conflict with clinical knowledge; can survive scrutiny. The higher-risk error type.</div>
+        <div><strong>Context blindness</strong> — accurate data used to reach a wrong conclusion because the AI's frame was incomplete. The AI may not know what it doesn't know. The hardest to catch and the hardest to trace after the fact.</div>
+      </div>
+    </div>
+    <div class="alert warn" style="flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:1.25rem">
+      <div style="font-weight:500;color:var(--c-warn-text)">📋 Also bring these questions to your co-designer conversation:</div>
+      <ul style="margin:0;padding-left:1.25rem;line-height:1.9;font-size:13px;color:var(--text)">
+        ${CHECKLIST.map(item => `<li>${item}</li>`).join('')}
+      </ul>
+    </div>
+    <div class="options">
+      <button class="opt" onclick="go('Modifier: pending co-designer review', null, 'no', 'result', true)">
+        <span class="opt-icon ic-warn">📋</span>
+        <span class="opt-content">
+          <div class="opt-label">Continue — show me what this posture requires</div>
+          <div class="opt-sub">${isBlocked ? 'See what Blocked means and what you need to do next' : `See ${baseName} requirements while you arrange the co-designer conversation`}</div>
+        </span>
+        <span class="opt-caret">›</span>
+      </button>
+    </div>`;
+
+  } else {
+    return `${trail()}${progress(3)}
+    <p class="question">Does any of the following describe how this feature works?</p>
+    <p class="question-note">If yes to any item, the posture moves up one level.</p>
+    <div style="border:0.5px solid var(--border2);border-radius:var(--radius);padding:14px 16px;margin-bottom:1.25rem;background:var(--bg2)">
+      <ul style="margin:0;padding-left:1.25rem;line-height:1.9;font-size:14px;color:var(--text)">
+        ${CHECKLIST.map(item => `<li>${item}</li>`).join('')}
+      </ul>
+    </div>
+    <div class="options">
+      <button class="opt" onclick="go('Modifier: yes — checklist item applies', null, 'yes', 'result', false)">
+        <span class="opt-icon ic-danger">⚠</span>
+        <span class="opt-content">
+          <div class="opt-label">Yes — at least one applies</div>
+          <div class="opt-sub">The posture moves up one level</div>
+        </span>
+        <span class="opt-caret">›</span>
+      </button>
+      <button class="opt" onclick="go('Modifier: no — none apply', null, 'no', 'result', false)">
+        <span class="opt-icon ic-success">✓</span>
+        <span class="opt-content">
+          <div class="opt-label">No — none of these apply</div>
+          <div class="opt-sub">The baseline posture stands</div>
+        </span>
+        <span class="opt-caret">›</span>
+      </button>
+    </div>`;
+  }
 }
 
 function result() {
@@ -574,7 +622,21 @@ function result() {
       `<div class="req"><span class="req-icon" style="color:${p.tc}">${r.icon}</span><span>${r.text}</span></div>`
     ).join('')}
   </div>
-  ${needsCall ? `
+  ${S.modPending ? (() => {
+    const elevatedPk = PM[S.out]?.['yes'];
+    if (elevatedPk && elevatedPk !== pk) {
+      return `<div class="alert warn" style="margin-bottom:1.25rem">
+        <span class="alert-icon">⚠</span>
+        <span>This is the <strong>baseline posture</strong>. Your Clinical Co-designer must confirm whether it remains ${p.lbl} or is elevated to <strong>${PS[elevatedPk].lbl}</strong> based on the checklist questions.</span>
+      </div>`;
+    } else {
+      return `<div class="alert warn" style="margin-bottom:1.25rem">
+        <span class="alert-icon">📞</span>
+        <span>Co-designer sign-off is required before this feature proceeds. This reflects Elation's current posture of not building native ${S.out === 'recommendation' ? 'Recommendations' : 'Conclusions'} without explicit governance approval.</span>
+      </div>`;
+    }
+  })() : ''}
+  ${needsCall && !S.modPending ? `
   <div class="alert warn">
     <span class="alert-icon">📞</span>
     <span><strong>Call your Clinical Co-designer</strong> — their sign-off is required before development proceeds.</span>
@@ -582,6 +644,7 @@ function result() {
   <hr class="divider">
   <div class="actions">
     <button class="btn-ghost" onclick="restart()">↺ Start over</button>
+    ${S.history.length ? `<button class="btn-ghost" onclick="back()">‹ Back</button>` : ''}
     <a class="btn" href="https://www.notion.so/86967916f60e4b25a7d64cff077b1572" target="_blank" rel="noopener">
       Open full policy ↗
     </a>
@@ -596,7 +659,10 @@ function done() {
     <span><strong>Standard process applies.</strong> This feature does not meet the clinical AI threshold. No additional governance required.</span>
   </div>
   <hr class="divider">
-  <button class="btn-ghost" onclick="restart()">↺ Classify another feature</button>`;
+  <div class="actions">
+    ${S.history.length ? `<button class="btn-ghost" onclick="back()">‹ Back</button>` : ''}
+    <button class="btn-ghost" onclick="restart()">↺ Classify another feature</button>
+  </div>`;
 }
 
 function unsure() {
@@ -612,6 +678,7 @@ function unsure() {
   </div>
   <hr class="divider">
   <div class="actions">
+    ${S.history.length ? `<button class="btn-ghost" onclick="back()">‹ Back</button>` : ''}
     <button class="btn-ghost" onclick="restart()">↺ Start over</button>
     <a class="btn" href="https://www.notion.so/86967916f60e4b25a7d64cff077b1572" target="_blank" rel="noopener">
       Open full policy ↗
@@ -621,16 +688,29 @@ function unsure() {
 
 /* ── State management ─────────────────────────────────────────────────────── */
 
-function go(label, out, mod, next) {
+function go(label, out, mod, next, modPending) {
+  S.history.push({ step: S.step, trail: [...S.trail], out: S.out, mod: S.mod, modPending: S.modPending });
   S.trail.push(label);
   if (out) S.out = out;
   if (mod) S.mod = mod;
+  if (modPending !== undefined) S.modPending = modPending;
   S.step = next;
   render();
 }
 
+function back() {
+  if (!S.history.length) return;
+  const prev = S.history.pop();
+  S.step = prev.step;
+  S.trail = prev.trail;
+  S.out = prev.out;
+  S.mod = prev.mod;
+  S.modPending = prev.modPending;
+  render();
+}
+
 function restart() {
-  Object.assign(S, { step: 'q1', trail: [], out: null, mod: null });
+  Object.assign(S, { step: 'q1', trail: [], out: null, mod: null, history: [], modPending: false });
   document.getElementById('progress').style.width = '0%';
   render();
 }
